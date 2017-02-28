@@ -25,17 +25,44 @@ struct blob {
   unsigned char data[1024];
 };
 
+static void blob_printdat(unsigned char *dat, size_t data_len){
+	int idx = 0;
+
+	for(idx=0; idx<data_len; idx++){	
+		if((idx % 8) == 0){
+			printf("\r\n");
+		}		
+		printf("%2d ", dat[idx]);
+	}	
+	printf("\r\n\r\n");
+}
+
 /* Declare type-specific blob_hashmap_* functions with this handy macro */
 HASHMAP_FUNCS_CREATE(blob, const char, struct blob)
 
 struct blob *blob_load(void)
 {
-  struct blob *b;
+	static int count = 0;
+	struct blob *b;
+	int idx;
+
+	if(count >= 5){
+		return NULL;
+	}
+
   /*
    * Hypothetical function that allocates and loads blob structures
    * from somewhere.  Returns NULL when there are no more blobs to load.
    */
-  return b;
+	b = (struct blob*)malloc(sizeof(*b));
+	memset(b, 0,sizeof(*b));
+	count = count+1;
+	sprintf(b->key, "%s%d", "k", count);
+	b->data_len = count;
+	for(idx = 0; idx<count;idx++){
+		b->data[idx] = 100+idx;
+	}
+	return b;
 }
 
 /* Hashmap structure */
@@ -57,12 +84,24 @@ int main(int argc, char **argv)
     }
   }
 
-  /* Lookup a blob with key "AbCdEf" */
-  b = blob_hashmap_get(&map, "AbCdEf");
-  if (b) {
-    printf("Found blob[%s]\n", b->key);
-  }
+	/* Lookup a blob with key "AbCdEf" */
+	b = blob_hashmap_get(&map, "AbCdEf");
+	if (b) {
+			printf("blob[%s]: found\n", b->key);
+			blob_printdat(b->data, b->data_len);
+	}else{
+		printf("blob[%s]: not found!!\n", "AbCdEf");
+	}
 
+	/* Lookup a blob with key "k3" */
+	b = blob_hashmap_get(&map, "k3");
+	if (b) {
+			printf("blob[%s]: found\n", b->key);
+			blob_printdat(b->data, b->data_len);
+	}else{
+		printf("blob[%s]: not found!!\n", "k3");
+	}
+  
   /* Iterate through all blobs and print each one */
   for (iter = hashmap_iter(&map); iter; iter = hashmap_iter_next(&map, iter)) {
     printf("blob[%s]: data_len %zu bytes\n", blob_hashmap_iter_get_key(iter),
@@ -87,4 +126,19 @@ int main(int argc, char **argv)
   return 0;
 }
 
+```
+
+### Output
+
+```
+blob[AbCdEf]: not found!!
+blob[k3]: found
+
+100 101 102 
+
+blob[k5]: data_len 5 bytes
+blob[k2]: data_len 2 bytes
+blob[k1]: data_len 1 bytes
+blob[k3]: data_len 3 bytes
+blob[k4]: data_len 4 bytes
 ```
